@@ -1,6 +1,12 @@
 const imgs = new Image();
 imgs.src = "./assets/sprites.png"
 
+const som_HIT = new Audio();
+som_HIT.src = "./assets/efeitos/hit.wav"
+
+const som_PULO = new Audio();
+som_PULO.src = "./assets/efeitos/pulo.wav"
+
 const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
 
@@ -25,6 +31,15 @@ function desenhaObjeto(origemLargura, origemAltura, larguraCorte, AlturaCorte, c
             larguraImg, alturaImg 
         );
     }
+}
+
+function fazColisao(bird, chao) {
+    const birdY = bird.canvasY + bird.alturaImg;
+    const chaoY = chao.canvasY;
+
+    if (birdY >= chaoY) return true
+
+    return false;
 }
 
 const telaFundo = {
@@ -74,6 +89,24 @@ const chao = {
     }
 }
 
+const getReady = {
+    imagem: imgs,
+    origemLargura: 133,
+    origemAltura: 0,
+    larguraCorte: 174,
+    AlturaCorte: 152,
+    canvasX: (canvas.width /2) - 174 / 2, //600 
+    canvasY: 98,
+    larguraImg: 174,
+    alturaImg: 152,
+    desenhar() {
+       
+        desenhaObjeto(this.origemLargura, this.origemAltura, this.larguraCorte, this.AlturaCorte,this.canvasX, 
+            this.canvasY,this.larguraImg, this.alturaImg
+        );
+    }
+}
+
 const bird = {
     imagem: imgs,
     origemLargura: 0,
@@ -86,7 +119,18 @@ const bird = {
     alturaImg: 40,
     gravidade: 0.25,
     velocidade: 1,
+    pulo: 4.6,
+    pular() {
+        som_PULO.play();
+        this.velocidade =  - this.pulo;
+    },
     atualizar() {
+        if(fazColisao(this, chao)) {
+            som_HIT.play();
+            mudaTela(telas.inicio)
+            return
+        }
+
         this.velocidade = this.velocidade + this.gravidade
         this.canvasY = this.canvasY + this.velocidade
     },
@@ -95,18 +139,65 @@ const bird = {
         desenhaObjeto(this.origemLargura, this.origemAltura, this.larguraCorte, this.AlturaCorte,this.canvasX, 
             this.canvasY,this.larguraImg, this.alturaImg
         );
+    },
+    resetarValores() {
+        this.gravidade =  0.25;
+        this.velocidade =  1;
+        this.pulo =  4.6;
+        this.canvasX =  80;
+        this.canvasY =  50;
+    }
+}
+
+let telaAtiva = {};
+function mudaTela(novaTela) {
+    telaAtiva = novaTela;
+}
+
+const telas = {
+    inicio: {
+        desenhar() {
+            telaFundo.desenhar()
+            chao.desenhar()
+            bird.desenhar();
+            getReady.desenhar();
+        },
+        atualizar() {
+
+        },
+        click() {
+            bird.resetarValores();
+            mudaTela(telas.jogo)
+        }
+    },
+    jogo: {
+        desenhar() {
+            telaFundo.desenhar()
+            chao.desenhar()
+            bird.desenhar();
+        },
+        atualizar() {
+            bird.atualizar();
+        },
+        click() {
+            bird.pular();
+        }
     }
 }
 
 function carregaTela() {
 
-    telaFundo.desenhar()
-    chao.desenhar()
-    bird.desenhar();
-    bird.atualizar();
-
-    
+    telaAtiva.desenhar();
+    telaAtiva.atualizar();
     requestAnimationFrame(carregaTela);
 }
 
+window.addEventListener("click", () => {
+
+    if(telaAtiva.click()) {
+        telaAtiva.click();
+    }
+})
+
+mudaTela(telas.inicio);
 carregaTela();
